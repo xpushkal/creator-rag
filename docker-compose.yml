@@ -6,8 +6,9 @@ services:
       POSTGRES_USER: creator
       POSTGRES_PASSWORD: creator
       POSTGRES_DB: creator_rag
+    # Host 5433 → container 5432 (host 5432 is taken by a native postgres).
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
