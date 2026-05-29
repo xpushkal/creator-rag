@@ -59,6 +59,8 @@ This buys three things at once: correct numbers, lower cost (trivial questions a
 
 **Orchestration — LangGraph (not bare LangChain).** A router is a graph with branches and a merge, not a linear chain. LangGraph also gives the checkpointer that backs cross-turn memory for free.
 
+**LLM — one provider, two tiers.** A cheap, fast model does intent routing (a structured classification call); the flagship model does synthesis. Sticking to one provider keeps it to a single key and SDK. The model layer goes through LangChain's chat interface, so switching providers is a one-line change — pick the one you'll defend on cost and quality.
+
 **Instagram extraction — dual provider.** See the next section; this is the riskiest part of the whole thing.
 
 **Transcription — faster-whisper, local.** No per-minute API bill. Swap for AssemblyAI if you'd rather pay for managed accuracy.
@@ -139,4 +141,5 @@ uvicorn app.api.main:app --reload
 
 - Multimodal hooks (OCR + vision captions) aren't wired yet — transcript-only answers to "compare the hooks" are shallower than they could be. This is the highest-value next step.
 - Instagram extraction is inherently fragile; treat the local provider as best-effort.
+- YouTube blocks transcript requests from known cloud-provider IPs (works locally, fails on AWS/GCP); a deployed instance needs a proxy on the transcript call.
 - No reranker on retrieval yet; at this corpus size it isn't needed, but it's the obvious lever if answer quality dips as the catalog grows.
