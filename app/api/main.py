@@ -6,6 +6,7 @@ emits the routed intent and source citations as structured events (FR-12).
 from __future__ import annotations
 
 import json
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -26,6 +27,10 @@ from app.core.db import get_session, init_db
 from app.ingest.pipeline import ingest_pair
 from app.models.video import Video, VideoMetadata
 from app.rag.graph import GRAPH
+
+
+# Surface ingest timing logs even when uvicorn runs at a quieter level.
+logging.getLogger("creator_rag").setLevel(logging.INFO)
 
 
 @asynccontextmanager

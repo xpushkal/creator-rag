@@ -41,7 +41,11 @@ class Settings(BaseSettings):
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_dim: int = 384
 
-    # Transcription (local faster-whisper)
+    # Transcription provider: "groq" (hosted, fast) | "local" (faster-whisper)
+    transcribe_provider: str = "groq"
+    # Groq hosted Whisper (uses the LLM Groq key/base by default).
+    groq_whisper_model: str = "whisper-large-v3-turbo"
+    # Local faster-whisper model (used only when transcribe_provider="local").
     whisper_model: str = "base"
 
     # CORS (comma-separated)
