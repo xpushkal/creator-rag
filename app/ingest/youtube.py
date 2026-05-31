@@ -30,7 +30,17 @@ class YouTubeMetadataProvider:
     """Fetch metadata via yt-dlp without downloading the video."""
 
     def fetch(self, url: str) -> RawMetadata:
-        opts = {"quiet": True, "skip_download": True, "no_warnings": True}
+        # We only need metadata (the transcript comes from the transcript API,
+        # not a download). Don't let format selection abort extraction:
+        # ignore_no_formats_error keeps videos whose formats yt-dlp can't
+        # resolve ("Requested format is not available") from failing ingest.
+        opts = {
+            "quiet": True,
+            "skip_download": True,
+            "no_warnings": True,
+            "ignore_no_formats_error": True,
+            "format": None,
+        }
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)
 

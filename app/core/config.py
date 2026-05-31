@@ -21,13 +21,15 @@ class Settings(BaseSettings):
         "postgresql+psycopg://creator:creator@localhost:5432/creator_rag"
     )
 
-    # LLM via OpenRouter (two tiers, swappable by model name)
-    openrouter_api_key: str = ""
-    openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    router_model: str = "anthropic/claude-3.5-haiku"
-    synthesis_model: str = "anthropic/claude-sonnet-4.6"
-    # Cap synthesis output: bounds per-query cost and avoids OpenRouter
-    # pre-reserving credit for the model's full context window.
+    # LLM via any OpenAI-compatible provider (Groq, OpenRouter, DeepSeek,
+    # Gemini OpenAI-compat, local Ollama...). Swap by changing base_url + key
+    # + model names — no code change (NFR-5).
+    llm_api_key: str = ""
+    llm_base_url: str = "https://api.groq.com/openai/v1"
+    router_model: str = "llama-3.3-70b-versatile"
+    synthesis_model: str = "llama-3.3-70b-versatile"
+    # Cap synthesis output: bounds cost and avoids providers pre-reserving
+    # credit/quota for the model's full context window.
     synthesis_max_tokens: int = 1024
 
     # Instagram metadata provider: "instaloader" | "apify"

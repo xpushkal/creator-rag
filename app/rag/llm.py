@@ -39,8 +39,8 @@ def _make(
         temperature=temperature,
         streaming=streaming,
         max_tokens=max_tokens,
-        api_key=s.openrouter_api_key,
-        base_url=s.openrouter_base_url,
+        api_key=s.llm_api_key,
+        base_url=s.llm_base_url,
         http_client=sync_client,
         http_async_client=async_client,
     )
