@@ -3,9 +3,58 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light dark;
+  --bg: #0b0c10;
 }
 
 body {
   @apply bg-neutral-50 text-neutral-900 antialiased;
+  background-image:
+    radial-gradient(60rem 40rem at 110% -10%, rgba(99, 102, 241, 0.10), transparent 60%),
+    radial-gradient(50rem 30rem at -10% 0%, rgba(236, 72, 153, 0.08), transparent 55%);
+  background-attachment: fixed;
+}
+
+/* Thin, unobtrusive scrollbars inside scroll areas */
+.scroll-slim::-webkit-scrollbar {
+  width: 8px;
+}
+.scroll-slim::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-neutral-300;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+.typing-dot {
+  animation: blink 1.2s infinite both;
+}
+
+/* Compact markdown styling for streamed answers inside chat bubbles */
+.md > :first-child { margin-top: 0; }
+.md > :last-child { margin-bottom: 0; }
+.md h1, .md h2, .md h3 {
+  @apply mb-1 mt-3 font-semibold text-neutral-900;
+}
+.md h1 { @apply text-base; }
+.md h2 { @apply text-sm; }
+.md h3 { @apply text-sm; }
+.md p { @apply my-1.5; }
+.md ul { @apply my-1.5 list-disc space-y-1 pl-4; }
+.md ol { @apply my-1.5 list-decimal space-y-1 pl-4; }
+.md strong { @apply font-semibold text-neutral-900; }
+.md em { @apply italic; }
+.md code {
+  @apply rounded bg-neutral-200 px-1 py-0.5 text-[12px];
+}
+.md hr { @apply my-2 border-neutral-200; }
+.md table {
+  @apply my-2 w-full border-collapse text-[12px];
+}
+.md th, .md td {
+  @apply border border-neutral-200 px-2 py-1 text-left align-top;
+}
+.md th { @apply bg-neutral-50 font-semibold; }
+.md blockquote {
+  @apply border-l-2 border-neutral-300 pl-2 text-neutral-600;
 }

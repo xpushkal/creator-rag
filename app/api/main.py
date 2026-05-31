@@ -93,9 +93,25 @@ async def _chat_stream(message: str, thread_id: str) -> AsyncIterator[str]:
     except Exception as e:
         # Surface failures as a visible event rather than a silently dropped
         # stream (e.g. a bad model slug returns 404 mid-synthesis).
-        yield _sse({"type": "error", "message": str(e)})
+        yield _sse({"type": "error", "message": _friendly_error(e)})
 
     yield _sse({"type": "done"})
+
+
+def _friendly_error(e: Exception) -> str:
+    """Map noisy provider exceptions to a short, human message."""
+    text = str(e)
+    if "402" in text or "more credits" in text:
+        return (
+            "The LLM provider is out of credits. Top up your OpenRouter balance "
+            "or switch the model provider (see SYNTHESIS_MODEL in .env)."
+        )
+    if "404" in text and "endpoints" in text:
+        return "The configured model isn't available on the provider. Check SYNTHESIS_MODEL."
+    if "rate limit" in text.lower() or "429" in text:
+        return "The LLM provider is rate-limiting requests. Try again in a moment."
+    # Fall back to the exception's own first line.
+    return text.split("\n", 1)[0][:300]
 
 
 @app.post("/chat")
