@@ -2,24 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg: #0b0c10;
-}
+@layer base {
+  :root {
+    --bg: #09090b; /* neutral-950 equivalent */
+  }
 
-body {
-  @apply bg-neutral-50 text-neutral-900 antialiased;
-  background-image:
-    radial-gradient(60rem 40rem at 110% -10%, rgba(99, 102, 241, 0.10), transparent 60%),
-    radial-gradient(50rem 30rem at -10% 0%, rgba(236, 72, 153, 0.08), transparent 55%);
-  background-attachment: fixed;
+  body {
+    background-color: var(--bg);
+    /* Deep animated radial gradient background for premium feel */
+    background-image:
+      radial-gradient(50vw 50vh at 100% 0%, rgba(99, 102, 241, 0.15), transparent 70%),
+      radial-gradient(50vw 50vh at 0% 100%, rgba(139, 92, 246, 0.1), transparent 70%);
+    background-attachment: fixed;
+    background-size: cover;
+  }
 }
 
 /* Thin, unobtrusive scrollbars inside scroll areas */
 .scroll-slim::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 .scroll-slim::-webkit-scrollbar-thumb {
-  @apply rounded-full bg-neutral-300;
+  @apply rounded-full bg-neutral-800;
+}
+.scroll-slim::-webkit-scrollbar-track {
+  @apply bg-transparent;
 }
 
 @keyframes blink {
@@ -27,34 +34,43 @@ body {
   50% { opacity: 1; }
 }
 .typing-dot {
-  animation: blink 1.2s infinite both;
+  animation: blink 1.4s infinite both;
+}
+
+/* Enter animations */
+@keyframes slideUpFade {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-up {
+  animation: slideUpFade 0.4s ease-out forwards;
 }
 
 /* Compact markdown styling for streamed answers inside chat bubbles */
 .md > :first-child { margin-top: 0; }
 .md > :last-child { margin-bottom: 0; }
 .md h1, .md h2, .md h3 {
-  @apply mb-1 mt-3 font-semibold text-neutral-900;
+  @apply mb-1 mt-3 font-semibold text-neutral-100;
 }
 .md h1 { @apply text-base; }
 .md h2 { @apply text-sm; }
 .md h3 { @apply text-sm; }
-.md p { @apply my-1.5; }
-.md ul { @apply my-1.5 list-disc space-y-1 pl-4; }
-.md ol { @apply my-1.5 list-decimal space-y-1 pl-4; }
-.md strong { @apply font-semibold text-neutral-900; }
+.md p { @apply my-2 leading-relaxed; }
+.md ul { @apply my-2 list-disc space-y-1 pl-4; }
+.md ol { @apply my-2 list-decimal space-y-1 pl-4; }
+.md strong { @apply font-semibold text-neutral-50; }
 .md em { @apply italic; }
 .md code {
-  @apply rounded bg-neutral-200 px-1 py-0.5 text-[12px];
+  @apply rounded-md bg-neutral-800 px-1.5 py-0.5 text-[12px] font-mono text-indigo-200;
 }
-.md hr { @apply my-2 border-neutral-200; }
+.md hr { @apply my-3 border-neutral-800; }
 .md table {
-  @apply my-2 w-full border-collapse text-[12px];
+  @apply my-3 w-full border-collapse text-[12px];
 }
 .md th, .md td {
-  @apply border border-neutral-200 px-2 py-1 text-left align-top;
+  @apply border border-neutral-800 px-2.5 py-1.5 text-left align-top;
 }
-.md th { @apply bg-neutral-50 font-semibold; }
+.md th { @apply bg-neutral-900/50 font-semibold; }
 .md blockquote {
-  @apply border-l-2 border-neutral-300 pl-2 text-neutral-600;
+  @apply border-l-2 border-indigo-500 pl-3 text-neutral-400 italic my-2;
 }

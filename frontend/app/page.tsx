@@ -43,23 +43,22 @@ export default function Home() {
       : null;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
-      <header className="mb-8">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow">
-            ▶
-          </span>
-          <h1 className="text-2xl font-bold tracking-tight">creator-rag</h1>
+    <main className="mx-auto max-w-6xl px-4 py-12 animate-slide-up">
+      <header className="mb-12 flex flex-col items-center text-center">
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20">
+          <span className="text-2xl text-white">▶</span>
         </div>
-        <p className="mt-2 text-sm text-neutral-500">
-          Compare a YouTube video and an Instagram Reel — and ask why one
-          outperformed the other.
+        <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+          creator<span className="text-indigo-400">-rag</span>
+        </h1>
+        <p className="mt-4 max-w-xl text-lg text-neutral-400">
+          Compare a YouTube video and an Instagram Reel — and discover the deeper reasons why one outperformed the other.
         </p>
       </header>
 
       <form
         onSubmit={onIngest}
-        className="mb-8 grid gap-3 rounded-2xl border border-neutral-200 bg-white/80 p-4 shadow-sm backdrop-blur sm:grid-cols-[1fr_1fr_auto]"
+        className="mx-auto mb-12 grid max-w-4xl gap-4 rounded-3xl border border-white/10 bg-white/5 p-4 shadow-xl backdrop-blur-xl sm:grid-cols-[1fr_1fr_auto]"
       >
         <UrlInput
           value={youtubeUrl}
@@ -76,19 +75,26 @@ export default function Home() {
         <button
           type="submit"
           disabled={loading || !youtubeUrl || !instagramUrl}
-          className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-40"
+          className="group relative flex items-center justify-center overflow-hidden rounded-2xl bg-indigo-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg transition-all hover:scale-[1.02] hover:bg-indigo-500 hover:shadow-indigo-500/25 disabled:pointer-events-none disabled:opacity-50"
         >
-          {loading ? "Ingesting…" : "Ingest pair"}
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+              Ingesting…
+            </span>
+          ) : (
+            "Ingest Pair"
+          )}
         </button>
       </form>
 
       {error && (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mx-auto mb-10 max-w-3xl rounded-2xl border border-red-500/20 bg-red-500/10 px-6 py-4 text-center text-sm font-medium text-red-400 backdrop-blur-md">
           {error}
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_1fr_minmax(340px,1.1fr)]">
+      <div className="grid gap-4 lg:gap-6 lg:grid-cols-[1fr_1fr_minmax(320px,1.2fr)]">
         {videos.map((v) => (
           <VideoCard key={v.video_id} video={v} isWinner={v.video_id === winnerId} />
         ))}
@@ -96,13 +102,13 @@ export default function Home() {
           Array.from({ length: Math.max(0, 2 - videos.length) }).map((_, i) => (
             <div
               key={`ph-${i}`}
-              className="flex min-h-[260px] items-center justify-center rounded-2xl border border-dashed border-neutral-300 text-sm text-neutral-400"
+              className="flex min-h-[250px] items-center justify-center rounded-[1.25rem] border border-dashed border-white/10 bg-white/5 text-sm font-medium text-neutral-500 backdrop-blur-sm"
             >
-              awaiting ingest
+              Awaiting ingest...
             </div>
           ))}
 
-        <div className="h-[600px]">
+        <div className="h-[450px] lg:h-[500px]">
           <Chat enabled={ready} />
         </div>
       </div>
@@ -122,13 +128,13 @@ function UrlInput({
   icon: string;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-neutral-300 bg-white px-3 transition focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-100">
-      <span className="text-neutral-400">{icon}</span>
+    <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 transition-all focus-within:border-indigo-500/50 focus-within:bg-black/40 focus-within:ring-4 focus-within:ring-indigo-500/10 hover:border-white/20">
+      <span className="text-neutral-500">{icon}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full bg-transparent py-2.5 text-sm outline-none"
+        className="w-full bg-transparent py-3.5 text-sm font-medium text-white placeholder-neutral-500 outline-none"
       />
     </div>
   );

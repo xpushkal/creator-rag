@@ -20,9 +20,9 @@ const SUGGESTIONS = [
 ];
 
 const INTENT_STYLE: Record<string, string> = {
-  quantitative: "bg-emerald-100 text-emerald-700",
-  qualitative: "bg-sky-100 text-sky-700",
-  hybrid: "bg-violet-100 text-violet-700",
+  quantitative: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+  qualitative: "bg-sky-500/10 text-sky-400 border border-sky-500/20",
+  hybrid: "bg-violet-500/10 text-violet-400 border border-violet-500/20",
 };
 
 export default function Chat({ enabled }: { enabled: boolean }) {
@@ -73,24 +73,24 @@ export default function Chat({ enabled }: { enabled: boolean }) {
   }
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm">
-      <div className="flex items-center gap-2 border-b border-neutral-200 px-4 py-3">
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-600 text-xs text-white">
+    <div className="flex h-full flex-col overflow-hidden rounded-[1.25rem] border border-white/10 bg-black/40 shadow-xl backdrop-blur-xl">
+      <div className="flex items-center gap-3 border-b border-white/10 bg-white/5 px-5 py-4 backdrop-blur-md">
+        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 text-xs text-indigo-300 shadow-inner">
           ✦
         </span>
-        <span className="text-sm font-semibold">Ask about the comparison</span>
+        <span className="text-sm font-semibold text-neutral-200">Ask about the comparison</span>
       </div>
 
-      <div ref={scrollRef} className="scroll-slim flex-1 space-y-4 overflow-y-auto p-4">
+      <div ref={scrollRef} className="scroll-slim flex-1 space-y-6 overflow-y-auto p-5">
         {messages.length === 0 && (
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-neutral-400">Try asking</p>
+          <div className="space-y-3 animate-slide-up">
+            <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500">Suggested Questions</p>
             {SUGGESTIONS.map((s) => (
               <button
                 key={s}
                 onClick={() => send(s)}
                 disabled={!enabled || busy}
-                className="block w-full rounded-xl border border-neutral-200 px-3 py-2.5 text-left text-xs text-neutral-600 transition hover:border-indigo-300 hover:bg-indigo-50/50 disabled:opacity-40"
+                className="block w-full rounded-2xl border border-white/5 bg-white/5 px-4 py-3 text-left text-sm text-neutral-300 transition-all hover:border-indigo-500/30 hover:bg-indigo-500/10 hover:text-indigo-200 disabled:opacity-40 disabled:pointer-events-none"
               >
                 {s}
               </button>
@@ -99,12 +99,12 @@ export default function Chat({ enabled }: { enabled: boolean }) {
         )}
 
         {messages.map((m, i) => (
-          <div key={i} className={m.role === "user" ? "text-right" : "text-left"}>
+          <div key={i} className={`animate-slide-up ${m.role === "user" ? "text-right" : "text-left"}`}>
             <div
-              className={`inline-block max-w-[88%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
+              className={`inline-block max-w-[85%] rounded-3xl px-5 py-3 text-sm leading-relaxed shadow-lg ${
                 m.role === "user"
-                  ? "whitespace-pre-wrap rounded-br-md bg-neutral-900 text-white"
-                  : "rounded-bl-md bg-neutral-100 text-neutral-900"
+                  ? "whitespace-pre-wrap rounded-br-sm bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
+                  : "rounded-bl-sm bg-white/10 text-neutral-200 border border-white/5 backdrop-blur-md"
               }`}
             >
               {m.role === "assistant" && m.content ? (
@@ -118,18 +118,18 @@ export default function Chat({ enabled }: { enabled: boolean }) {
               )}
               {m.role === "assistant" && busy && !m.content && !m.error ? (
                 <span className="inline-flex gap-1">
-                  <span className="typing-dot">●</span>
-                  <span className="typing-dot" style={{ animationDelay: "0.2s" }}>●</span>
-                  <span className="typing-dot" style={{ animationDelay: "0.4s" }}>●</span>
+                  <span className="typing-dot bg-neutral-400 h-1.5 w-1.5 rounded-full block"></span>
+                  <span className="typing-dot bg-neutral-400 h-1.5 w-1.5 rounded-full block" style={{ animationDelay: "0.2s" }}></span>
+                  <span className="typing-dot bg-neutral-400 h-1.5 w-1.5 rounded-full block" style={{ animationDelay: "0.4s" }}></span>
                 </span>
               ) : null}
             </div>
 
             {m.role === "assistant" && m.intent && (
-              <div className="mt-1.5">
+              <div className="mt-2">
                 <span
-                  className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
-                    INTENT_STYLE[m.intent] ?? "bg-neutral-200 text-neutral-600"
+                  className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest ${
+                    INTENT_STYLE[m.intent] ?? "bg-neutral-800 text-neutral-400 border border-neutral-700"
                   }`}
                 >
                   {m.intent}
@@ -138,11 +138,11 @@ export default function Chat({ enabled }: { enabled: boolean }) {
             )}
 
             {m.role === "assistant" && m.citations && m.citations.length > 0 && (
-              <div className="mt-1.5 flex flex-wrap gap-1">
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {m.citations.map((c) => (
                   <span
                     key={c.chunk_id}
-                    className="rounded-md bg-neutral-100 px-1.5 py-0.5 text-[10px] text-neutral-500 ring-1 ring-neutral-200"
+                    className="rounded-lg bg-black/30 px-2 py-1 text-[10px] font-medium text-neutral-400 border border-white/5"
                   >
                     Video {c.video_id} · chunk {c.chunk_id} · {c.modality}
                   </span>
@@ -151,7 +151,7 @@ export default function Chat({ enabled }: { enabled: boolean }) {
             )}
 
             {m.role === "assistant" && m.error && (
-              <div className="mt-1.5 inline-block rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-left text-xs text-amber-800">
+              <div className="mt-2 inline-block rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-left text-xs text-red-400">
                 ⚠️ {m.error}
               </div>
             )}
@@ -164,22 +164,24 @@ export default function Chat({ enabled }: { enabled: boolean }) {
           e.preventDefault();
           send(input);
         }}
-        className="flex gap-2 border-t border-neutral-200 p-3"
+        className="border-t border-white/10 bg-white/5 p-4 backdrop-blur-md"
       >
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          disabled={!enabled || busy}
-          placeholder={enabled ? "Ask a question…" : "Ingest two videos first"}
-          className="flex-1 rounded-xl border border-neutral-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:bg-neutral-100"
-        />
-        <button
-          type="submit"
-          disabled={!enabled || busy || !input.trim()}
-          className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-40"
-        >
-          Send
-        </button>
+        <div className="flex gap-3">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            disabled={!enabled || busy}
+            placeholder={enabled ? "Ask a question…" : "Ingest two videos first"}
+            className="flex-1 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-neutral-100 placeholder-neutral-500 outline-none transition-all focus:border-indigo-500/50 focus:bg-black/60 focus:ring-4 focus:ring-indigo-500/10 disabled:opacity-50"
+          />
+          <button
+            type="submit"
+            disabled={!enabled || busy || !input.trim()}
+            className="flex items-center justify-center rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:scale-[1.02] hover:bg-indigo-500 hover:shadow-indigo-500/25 disabled:pointer-events-none disabled:opacity-40"
+          >
+            Send
+          </button>
+        </div>
       </form>
     </div>
   );
