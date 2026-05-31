@@ -24,8 +24,11 @@ class Settings(BaseSettings):
     # LLM via OpenRouter (two tiers, swappable by model name)
     openrouter_api_key: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
-    router_model: str = "meta-llama/llama-3.1-8b-instruct"
-    synthesis_model: str = "anthropic/claude-3.5-sonnet"
+    router_model: str = "anthropic/claude-3.5-haiku"
+    synthesis_model: str = "anthropic/claude-sonnet-4.6"
+    # Cap synthesis output: bounds per-query cost and avoids OpenRouter
+    # pre-reserving credit for the model's full context window.
+    synthesis_max_tokens: int = 1024
 
     # Instagram metadata provider: "instaloader" | "apify"
     ig_provider: str = "instaloader"

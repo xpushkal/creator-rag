@@ -44,6 +44,8 @@ def ask(label: str, message: str) -> None:
                 answer_parts.append(evt["content"])
                 sys.stdout.write(evt["content"])
                 sys.stdout.flush()
+            elif t == "error":
+                print(f"\n[SERVER ERROR] {evt['message']}")
             elif t == "done":
                 break
 
