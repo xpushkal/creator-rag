@@ -56,6 +56,7 @@ export type ChatEvent =
   | { type: "intent"; intent: string }
   | { type: "citations"; citations: Citation[] }
   | { type: "token"; content: string }
+  | { type: "error"; message: string }
   | { type: "done" };
 
 // Streams SSE events from POST /chat, invoking onEvent for each one.

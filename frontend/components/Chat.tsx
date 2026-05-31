@@ -44,6 +44,7 @@ export default function Chat({ enabled }: { enabled: boolean }) {
           if (e.type === "token") last.content += e.content;
           else if (e.type === "intent") last.intent = e.intent;
           else if (e.type === "citations") last.citations = e.citations;
+          else if (e.type === "error") last.content += `\n⚠️ ${e.message}`;
           return next;
         });
       });

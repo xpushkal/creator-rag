@@ -62,6 +62,9 @@ def _persist(
         caption=meta.caption,
     )
     session.merge(video)  # upsert by primary key (video_id)
+    # Persist the video row within the transaction before inserting chunks, so
+    # the chunks' FK to video_id is satisfied (session has autoflush disabled).
+    session.flush()
 
     # Replace any existing chunks for this video, then re-create.
     session.query(Chunk).filter(Chunk.video_id == meta.video_id).delete()

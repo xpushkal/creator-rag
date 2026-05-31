@@ -73,20 +73,27 @@ async def _chat_stream(message: str, thread_id: str) -> AsyncIterator[str]:
     config = {"configurable": {"thread_id": thread_id}}
     inputs = {"messages": [HumanMessage(content=message)], "question": message}
 
-    async for mode, chunk in GRAPH.astream(
-        inputs, config=config, stream_mode=["updates", "messages"]
-    ):
-        if mode == "updates":
-            for node, update in chunk.items():
-                if node == "route" and update.get("intent"):
-                    yield _sse({"type": "intent", "intent": update["intent"]})
-                if update and update.get("citations"):
-                    yield _sse({"type": "citations", "citations": update["citations"]})
-        elif mode == "messages":
-            msg, meta = chunk
-            # Only stream tokens from the synthesis node.
-            if meta.get("langgraph_node") == "synthesize" and msg.content:
-                yield _sse({"type": "token", "content": msg.content})
+    try:
+        async for mode, chunk in GRAPH.astream(
+            inputs, config=config, stream_mode=["updates", "messages"]
+        ):
+            if mode == "updates":
+                for node, update in chunk.items():
+                    if node == "route" and update.get("intent"):
+                        yield _sse({"type": "intent", "intent": update["intent"]})
+                    if update and update.get("citations"):
+                        yield _sse(
+                            {"type": "citations", "citations": update["citations"]}
+                        )
+            elif mode == "messages":
+                msg, meta = chunk
+                # Only stream tokens from the synthesis node.
+                if meta.get("langgraph_node") == "synthesize" and msg.content:
+                    yield _sse({"type": "token", "content": msg.content})
+    except Exception as e:
+        # Surface failures as a visible event rather than a silently dropped
+        # stream (e.g. a bad model slug returns 404 mid-synthesis).
+        yield _sse({"type": "error", "message": str(e)})
 
     yield _sse({"type": "done"})
 
