@@ -29,17 +29,25 @@ class Settings(BaseSettings):
     router_model: str = "llama-3.3-70b-versatile"
     synthesis_model: str = "llama-3.3-70b-versatile"
     # Cap synthesis output: bounds cost and avoids providers pre-reserving
-    # credit/quota for the model's full context window.
-    synthesis_max_tokens: int = 1024
+    # quota for the full context window. Roomy enough not to truncate a
+    # thorough comparison (the 1024 cap was only to dodge OpenRouter's credit
+    # pre-check, which Groq doesn't do).
+    synthesis_max_tokens: int = 3000
 
     # Instagram metadata provider: "instaloader" | "apify"
     ig_provider: str = "instaloader"
     apify_api_token: str = ""
+    apify_actor: str = "apify~instagram-scraper"
     ig_username: str = ""
 
     # Embeddings (local). bge-small-en-v1.5 → 384 dims.
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_dim: int = 384
+
+    # YouTube increasingly blocks anonymous transcript/format access. Set to a
+    # browser name (chrome|safari|firefox|edge|brave) to authenticate yt-dlp
+    # with that browser's YouTube cookies. Empty = anonymous (may be blocked).
+    yt_cookies_from_browser: str = ""
 
     # Transcription provider: "groq" (hosted, fast) | "local" (faster-whisper)
     transcribe_provider: str = "groq"

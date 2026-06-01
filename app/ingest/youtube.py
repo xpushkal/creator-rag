@@ -7,12 +7,28 @@ Works locally; a deployed instance needs a proxy on this call.
 from __future__ import annotations
 
 import datetime as dt
+import glob
 import re
+from pathlib import Path
 
 import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi
 
+from app.core.config import get_settings
 from app.ingest.base import RawMetadata, TranscriptSegment
+
+# Downloaded audio for the Whisper fallback; gitignored, cached per video id.
+_AUDIO_DIR = Path("data/media")
+
+
+def _ydl_opts(**extra) -> dict:
+    """Base yt-dlp options, optionally authenticated with browser cookies to
+    get past YouTube's anti-bot blocking (set YT_COOKIES_FROM_BROWSER)."""
+    opts = {"quiet": True, "no_warnings": True, **extra}
+    browser = get_settings().yt_cookies_from_browser.strip()
+    if browser:
+        opts["cookiesfrombrowser"] = (browser,)
+    return opts
 
 _HASHTAG_RE = re.compile(r"#(\w+)")
 
@@ -34,13 +50,9 @@ class YouTubeMetadataProvider:
         # not a download). Don't let format selection abort extraction:
         # ignore_no_formats_error keeps videos whose formats yt-dlp can't
         # resolve ("Requested format is not available") from failing ingest.
-        opts = {
-            "quiet": True,
-            "skip_download": True,
-            "no_warnings": True,
-            "ignore_no_formats_error": True,
-            "format": None,
-        }
+        opts = _ydl_opts(
+            skip_download=True, ignore_no_formats_error=True, format=None
+        )
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)
 
@@ -89,3 +101,26 @@ class YouTubeTranscriptProvider:
             for e in entries
             if e.get("text", "").strip()
         ]
+
+
+def download_youtube_audio(url: str) -> Path:
+    """Download the audio track for the Whisper fallback (used when the
+    transcript API returns nothing — increasingly common as YouTube blocks it).
+
+    bestaudio with no post-processing avoids an ffmpeg dependency; the file is
+    cached per video id so re-ingest is free.
+    """
+    _AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    vid = YouTubeTranscriptProvider._video_id(url)
+    existing = glob.glob(str(_AUDIO_DIR / f"yt_{vid}.*"))
+    if existing:
+        return Path(existing[0])
+
+    out_tmpl = str(_AUDIO_DIR / f"yt_{vid}.%(ext)s")
+    opts = _ydl_opts(format="bestaudio/best", outtmpl=out_tmpl)
+    with yt_dlp.YoutubeDL(opts) as ydl:
+        ydl.download([url])
+    files = glob.glob(str(_AUDIO_DIR / f"yt_{vid}.*"))
+    if not files:
+        raise RuntimeError(f"Failed to download audio for {url}")
+    return Path(files[0])

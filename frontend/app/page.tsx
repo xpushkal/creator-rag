@@ -10,11 +10,30 @@ export default function Home() {
   const [instagramUrl, setInstagramUrl] = useState("");
   const [videos, setVideos] = useState<VideoMetadata[]>([]);
   const [loading, setLoading] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getVideos().then(setVideos).catch(() => {});
   }, []);
+
+  // Tick an elapsed counter while ingesting so the long wait (scrape +
+  // transcription, ~30-60s) doesn't look frozen.
+  useEffect(() => {
+    if (!loading) {
+      setElapsed(0);
+      return;
+    }
+    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(id);
+  }, [loading]);
+
+  const stage =
+    elapsed < 15
+      ? "Fetching metadata…"
+      : elapsed < 45
+        ? "Transcribing audio…"
+        : "Embedding & finishing up…";
 
   async function onIngest(e: React.FormEvent) {
     e.preventDefault();
@@ -87,6 +106,15 @@ export default function Home() {
           )}
         </button>
       </form>
+
+      {loading && (
+        <div className="mx-auto mb-10 flex max-w-3xl items-center justify-center gap-3 rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-6 py-4 text-sm font-medium text-indigo-300 backdrop-blur-md">
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-400/30 border-t-indigo-300"></span>
+          {stage}
+          <span className="tabular-nums text-indigo-400/70">{elapsed}s</span>
+          <span className="text-indigo-400/50">· scraping + transcription can take up to a minute</span>
+        </div>
+      )}
 
       {error && (
         <div className="mx-auto mb-10 max-w-3xl rounded-2xl border border-red-500/20 bg-red-500/10 px-6 py-4 text-center text-sm font-medium text-red-400 backdrop-blur-md">

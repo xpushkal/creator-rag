@@ -23,14 +23,27 @@ from app.api.schemas import (
     VideosResponse,
 )
 from app.core.config import get_settings
+from app.core.net import force_ipv4
+
+# Prefer IPv4 for all outbound calls (yt-dlp, transcript API, LLM SDK) so a
+# broken IPv6 route can't stall ingestion for ~75s. Must run before any
+# network client is created.
+force_ipv4()
 from app.core.db import get_session, init_db
 from app.ingest.pipeline import ingest_pair
 from app.models.video import Video, VideoMetadata
 from app.rag.graph import GRAPH
 
 
-# Surface ingest timing logs even when uvicorn runs at a quieter level.
-logging.getLogger("creator_rag").setLevel(logging.INFO)
+# Surface ingest timing logs (own handler so they show regardless of uvicorn's
+# logging config, which doesn't attach a handler to the root logger).
+_ingest_log = logging.getLogger("creator_rag")
+_ingest_log.setLevel(logging.INFO)
+if not _ingest_log.handlers:
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(levelname)s:     %(message)s"))
+    _ingest_log.addHandler(_h)
+    _ingest_log.propagate = False
 
 
 @asynccontextmanager

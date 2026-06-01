@@ -23,7 +23,9 @@ sentence-transformers==3.3.1
 faster-whisper==1.1.0
 
 # --- Extraction ---
-yt-dlp==2024.12.13
+# Keep current — YouTube changes its player often; a stale yt-dlp causes
+# "No video formats found". Bump this whenever extraction breaks.
+yt-dlp>=2026.3.17
 youtube-transcript-api==0.6.3
 instaloader==4.14
 

@@ -26,6 +26,11 @@ suggestions for improvement. Needs retrieval over transcript text.
 - "hybrid": needs BOTH a number and content reasoning (e.g. "why did A get more \
 engagement than B?").
 
+When in doubt, or if the question could plausibly need a number AND content, \
+choose "hybrid" — it includes the metrics, so a borderline call never drops a \
+number. Only choose "quantitative" or "qualitative" when the question clearly \
+needs just one.
+
 Use the chat history to resolve follow-ups. Reply with ONE word only — exactly \
 one of: quantitative, qualitative, hybrid. No punctuation, no explanation."""
 

@@ -18,7 +18,20 @@ TARGET_TOKENS = 250
 OVERLAP_RATIO = 0.15
 HOOK_WINDOW_SECONDS = 5.0
 
+# Whisper hallucinates short filler on music/silence ("Thank you", "Thanks for
+# watching"). A transcript below these thresholds is treated as "no usable
+# speech" and produces no chunks, so fabricated text never becomes retrievable
+# evidence. Real short-form speech easily clears these.
+MIN_TRANSCRIPT_WORDS = 5
+MIN_UNIQUE_WORDS = 4
+
 _SENTENCE_RE = re.compile(r"(?<=[.!?])\s+")
+_WORD_RE = re.compile(r"[a-z0-9']+")
+
+
+def has_usable_speech(segments: list[TranscriptSegment]) -> bool:
+    words = _WORD_RE.findall(" ".join(s.text for s in segments).lower())
+    return len(words) >= MIN_TRANSCRIPT_WORDS and len(set(words)) >= MIN_UNIQUE_WORDS
 
 
 @dataclass
@@ -116,8 +129,9 @@ def _sentence_window_chunks(
 
 def chunk_transcript(segments: list[TranscriptSegment]) -> list[TranscriptChunk]:
     """Produce transcript chunks plus a dedicated hook chunk (if any speech in
-    the first 5 seconds)."""
-    if not segments:
+    the first 5 seconds). Returns [] when there's no usable speech, so Whisper
+    hallucinations on music/silence don't become retrievable evidence."""
+    if not segments or not has_usable_speech(segments):
         return []
     chunks = _sentence_window_chunks(segments)
     hook = _build_hook_chunk(segments)

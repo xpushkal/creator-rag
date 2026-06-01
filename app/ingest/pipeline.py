@@ -22,7 +22,11 @@ from app.ingest.instagram import download_reel_media
 from app.ingest.normalize import normalize
 from app.ingest.providers import get_instagram_provider
 from app.ingest.transcribe import transcribe
-from app.ingest.youtube import YouTubeMetadataProvider, YouTubeTranscriptProvider
+from app.ingest.youtube import (
+    YouTubeMetadataProvider,
+    YouTubeTranscriptProvider,
+    download_youtube_audio,
+)
 from app.models.chunk import Chunk
 from app.models.video import Video, VideoMetadata
 
@@ -45,11 +49,19 @@ def _extract_youtube(url: str) -> tuple[RawMetadata, list[TranscriptSegment]]:
         raw = YouTubeMetadataProvider().fetch(url)
     with _timed("youtube transcript (api)"):
         segments = YouTubeTranscriptProvider().fetch(raw)
+    # YouTube increasingly blocks the transcript API. Fall back to the same
+    # fast Groq Whisper path used for Instagram so there's always content.
+    if not segments:
+        logger.info("ingest: youtube transcript empty → audio + Whisper fallback")
+        with _timed("youtube audio download"):
+            audio_path = download_youtube_audio(url)
+        with _timed("whisper transcription (youtube fallback)"):
+            segments = transcribe(audio_path)
     return raw, segments
 
 
 def _extract_instagram(url: str) -> tuple[RawMetadata, list[TranscriptSegment]]:
-    with _timed("instagram metadata (instaloader)"):
+    with _timed("instagram metadata"):
         raw = get_instagram_provider().fetch(url)
     # Instagram gives no transcript: download media and run Whisper.
     segments: list[TranscriptSegment] = []
