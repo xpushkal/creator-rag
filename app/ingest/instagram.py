@@ -34,6 +34,22 @@ def _shortcode(url: str) -> str:
     return m.group(1)
 
 
+def _video_views(post) -> int | None:
+    """Best-effort play/view count for a Reel.
+
+    Instagram now returns `video_view_count` as None for a large share of Reels
+    (it renamed views to "plays"). Without a number here, engagement rate can't
+    be computed and the video silently shows "—", which breaks the whole
+    comparison. Fall through the attributes instaloader may expose so a count is
+    recovered whenever one exists.
+    """
+    for attr in ("video_view_count", "video_play_count", "view_count"):
+        val = getattr(post, attr, None)
+        if val:
+            return int(val)
+    return None
+
+
 class InstaloaderProvider:
     """Free, local, demo-grade. Rate-limits aggressively (429) and heavy use can
     get a logged-in account banned — demo only (README)."""
@@ -73,7 +89,7 @@ class InstaloaderProvider:
             url=url,
             creator=post.owner_username,
             follower_count=follower_count,
-            views=post.video_view_count,
+            views=_video_views(post),
             likes=post.likes,
             comments=post.comments,
             hashtags=hashtags,

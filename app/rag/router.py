@@ -6,6 +6,7 @@ retrieved; qualitative ones are real retrieval; hybrid needs both (README).
 """
 from __future__ import annotations
 
+import re
 from typing import Literal, get_args
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -14,6 +15,22 @@ from app.rag.llm import get_router_llm
 
 Intent = Literal["quantitative", "qualitative", "hybrid"]
 _INTENTS = get_args(Intent)
+
+
+def _parse_intent(text: str) -> Intent:
+    """Extract the intent from the model's reply by whole-word match.
+
+    Whole words only: a loose substring check resolves a chatty reply by list
+    order rather than by what the model decided, and would also let
+    "quantitative" shadow a reply that meant "qualitative". If the reply names
+    exactly one intent we trust it; anything ambiguous or unrecognized falls
+    back to "hybrid", the safe superset that gathers both metrics and evidence.
+    """
+    words = set(re.findall(r"[a-z]+", text.lower()))
+    found = [intent for intent in _INTENTS if intent in words]
+    if len(found) == 1:
+        return found[0]  # type: ignore[return-value]
+    return "hybrid"
 
 _SYSTEM = """You classify a user's question about a comparison of two short-form \
 videos (A = YouTube, B = Instagram) into exactly one intent:
@@ -48,8 +65,4 @@ def classify(question: str, history: str = "") -> Intent:
     reply = get_router_llm().invoke(
         [SystemMessage(content=_SYSTEM), HumanMessage(content=user)]
     )
-    text = (reply.content or "").strip().lower()
-    for intent in _INTENTS:
-        if intent in text:
-            return intent  # type: ignore[return-value]
-    return "hybrid"
+    return _parse_intent(reply.content or "")
