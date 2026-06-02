@@ -11,10 +11,11 @@ venv/
 *.session
 *.session-*
 
-# Media / model cache
+# Media / model cache (anchored to repo root so they don't shadow source dirs
+# like app/models — an unanchored "models/" matches at every depth in git).
 data/media/
 .cache/
-models/
+/models/
 
 # Node / Next.js
 frontend/node_modules/
