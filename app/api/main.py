@@ -83,6 +83,27 @@ def videos(session: Session = Depends(get_session)) -> VideosResponse:
     return VideosResponse(videos=[VideoMetadata.from_orm_video(v) for v in rows])
 
 
+@app.post("/seed", response_model=VideosResponse)
+def seed(session: Session = Depends(get_session)) -> VideosResponse:
+    """Populate the two demo videos so a hosted instance isn't empty.
+
+    Live YouTube/Instagram scraping fails from cloud IPs, so this loads the
+    deterministic demo pair (transcripts embedded locally with BGE) straight
+    into the DB. Idempotent: if videos already exist it returns them untouched,
+    so it can only fill an empty database — never overwrite real ingests.
+    """
+    existing = session.query(Video).order_by(Video.video_id).all()
+    if len(existing) < 2:
+        # Imported lazily: pulls in the embedding model only when actually seeding.
+        from app.ingest.pipeline import _persist
+        from scripts.seed import A_META, A_SEGMENTS, B_META, B_SEGMENTS
+
+        _persist(session, A_META, A_SEGMENTS)
+        _persist(session, B_META, B_SEGMENTS)
+        existing = session.query(Video).order_by(Video.video_id).all()
+    return VideosResponse(videos=[VideoMetadata.from_orm_video(v) for v in existing])
+
+
 def _sse(event: dict) -> str:
     return f"data: {json.dumps(event)}\n\n"
 
