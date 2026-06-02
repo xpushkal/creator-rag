@@ -1,12 +1,21 @@
-# Backend container for Render (or any container host).
+# Backend container.
+# Runs on Hugging Face Spaces (Docker SDK — port 7860, container runs as UID
+# 1000) and on any other container host (Render etc. inject their own $PORT).
 # The frontend deploys separately on Vercel — see DEPLOY.md.
 FROM python:3.11-slim
 
 # Faster, quieter Python; no .pyc clutter in the image.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_NO_CACHE_DIR=1 \
-    HF_HOME=/app/.cache/huggingface
+    PIP_NO_CACHE_DIR=1
+
+# HF Spaces run the container as UID 1000. Create a matching user with a
+# writable HOME so the model cache (HF_HOME) and downloaded media land somewhere
+# the runtime user can actually write.
+RUN useradd -m -u 1000 user
+ENV HOME=/home/user \
+    HF_HOME=/home/user/.cache/huggingface \
+    PORT=7860
 
 WORKDIR /app
 
@@ -23,8 +32,10 @@ COPY app ./app
 COPY scripts ./scripts
 COPY schema.sql ./schema.sql
 
-# Render injects $PORT; default to 8000 for local `docker run`.
-ENV PORT=8000
-EXPOSE 8000
+# Hand the working dir to the runtime user so ingestion can write data/media.
+RUN chown -R user:user /app
+USER user
 
-CMD ["sh", "-c", "uvicorn app.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# HF expects 7860; other hosts override via $PORT.
+EXPOSE 7860
+CMD ["sh", "-c", "uvicorn app.api.main:app --host 0.0.0.0 --port ${PORT:-7860}"]
