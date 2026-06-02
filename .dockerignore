@@ -1,0 +1,24 @@
+# Keep the backend image small: ship only app code + requirements.
+frontend/
+.venv/
+venv/
+**/__pycache__/
+**/*.py[cod]
+*.egg-info/
+.pytest_cache/
+tests/
+
+# Secrets and local state never go in the image.
+.env
+*.session
+*.session-*
+data/
+.cache/
+models/
+
+# VCS / editor / OS
+.git/
+.gitignore
+.DS_Store
+Docs/
+*.md
