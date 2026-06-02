@@ -8,8 +8,11 @@ from __future__ import annotations
 
 import datetime as dt
 import glob
+import logging
 import re
+import time
 from pathlib import Path
+from typing import Callable, TypeVar
 
 import yt_dlp
 from youtube_transcript_api import YouTubeTranscriptApi
@@ -17,14 +20,78 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from app.core.config import get_settings
 from app.ingest.base import RawMetadata, TranscriptSegment
 
+logger = logging.getLogger("creator_rag.ingest")
+
 # Downloaded audio for the Whisper fallback; gitignored, cached per video id.
 _AUDIO_DIR = Path("data/media")
+
+# Substrings (lower-cased) that mark a transient TLS/connection drop worth
+# retrying. YouTube intermittently resets the connection to its innertube API
+# ("[SSL: UNEXPECTED_EOF_WHILE_READING] ... Unable to download API page"),
+# which fails the whole ingest. We do NOT retry permanent failures like
+# "video unavailable" / "private video" — those don't match these markers.
+_TRANSIENT_MARKERS = (
+    "ssl",
+    "eof",
+    "timed out",
+    "timeout",
+    "connection reset",
+    "connection aborted",
+    "unable to download",
+    "remote end closed",
+    "temporary failure",
+    "max retries",
+)
+
+_T = TypeVar("_T")
+
+
+def _is_transient(err: Exception) -> bool:
+    msg = str(err).lower()
+    return any(m in msg for m in _TRANSIENT_MARKERS)
+
+
+def _with_retries(
+    fn: Callable[[], _T], *, attempts: int = 3, base_delay: float = 1.0
+) -> _T:
+    """Run a YouTube network call, retrying transient TLS/connection drops with
+    exponential backoff. yt-dlp's own retries don't reliably catch the SSL EOF
+    YouTube throws at the innertube API, so we retry at the application level.
+    Permanent failures (no captions, private video) aren't transient and raise
+    immediately on the first attempt.
+    """
+    for i in range(attempts):
+        try:
+            return fn()
+        except Exception as e:  # noqa: BLE001 — re-raised below if not transient
+            if not _is_transient(e) or i == attempts - 1:
+                raise
+            delay = base_delay * (2**i)
+            logger.warning(
+                "youtube: transient error (attempt %d/%d), retrying in %.0fs: %s",
+                i + 1,
+                attempts,
+                delay,
+                e,
+            )
+            time.sleep(delay)
+    raise AssertionError("unreachable")  # loop either returns or raises
 
 
 def _ydl_opts(**extra) -> dict:
     """Base yt-dlp options, optionally authenticated with browser cookies to
     get past YouTube's anti-bot blocking (set YT_COOKIES_FROM_BROWSER)."""
-    opts = {"quiet": True, "no_warnings": True, **extra}
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+        # Bound each connection and let yt-dlp itself retry transient network
+        # failures before our application-level _with_retries kicks in.
+        "socket_timeout": 30,
+        "retries": 5,
+        "extractor_retries": 5,
+        "fragment_retries": 5,
+        **extra,
+    }
     browser = get_settings().yt_cookies_from_browser.strip()
     if browser:
         opts["cookiesfrombrowser"] = (browser,)
@@ -53,8 +120,12 @@ class YouTubeMetadataProvider:
         opts = _ydl_opts(
             skip_download=True, ignore_no_formats_error=True, format=None
         )
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(url, download=False)
+
+        def _extract() -> dict:
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                return ydl.extract_info(url, download=False)
+
+        info = _with_retries(_extract)
 
         description = info.get("description") or ""
         hashtags = info.get("tags") or _HASHTAG_RE.findall(description)
@@ -88,7 +159,10 @@ class YouTubeTranscriptProvider:
     def fetch(self, raw: RawMetadata) -> list[TranscriptSegment]:
         vid = self._video_id(raw.url)
         try:
-            entries = YouTubeTranscriptApi.get_transcript(vid)
+            # Retry transient TLS drops so a blip doesn't needlessly fall through
+            # to the slow audio+Whisper path; permanent "no captions" raises
+            # immediately and is caught below.
+            entries = _with_retries(lambda: YouTubeTranscriptApi.get_transcript(vid))
         except Exception:
             # No captions / disabled / blocked → caller handles empty transcript.
             return []
@@ -118,8 +192,12 @@ def download_youtube_audio(url: str) -> Path:
 
     out_tmpl = str(_AUDIO_DIR / f"yt_{vid}.%(ext)s")
     opts = _ydl_opts(format="bestaudio/best", outtmpl=out_tmpl)
-    with yt_dlp.YoutubeDL(opts) as ydl:
-        ydl.download([url])
+
+    def _download() -> None:
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            ydl.download([url])
+
+    _with_retries(_download)
     files = glob.glob(str(_AUDIO_DIR / f"yt_{vid}.*"))
     if not files:
         raise RuntimeError(f"Failed to download audio for {url}")

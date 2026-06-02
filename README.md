@@ -1,3 +1,13 @@
+---
+title: Creator RAG API
+emoji: 🎬
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # creator-rag
 
 A chatbot that compares two short-form videos — one YouTube, one Instagram Reel — and answers questions about why one outperformed the other.
