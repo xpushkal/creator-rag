@@ -66,14 +66,61 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+# Markers that mean live extraction was *refused*, not that the URL was bad —
+# typically YouTube/Instagram blocking this host's datacenter IP (the documented
+# hosted-demo limitation; see DEPLOY.md). We steer the user to the seeded demo
+# pair instead of showing a raw stack trace.
+_BLOCKED_MARKERS = (
+    "ssl",
+    "eof",
+    "unable to download",
+    "403",
+    "429",
+    "forbidden",
+    "sign in to confirm",
+    "login required",
+    "rate limit",
+    "please wait a few minutes",
+    "checkpoint",
+    "timed out",
+    "timeout",
+    "connection reset",
+    "connection aborted",
+)
+
+
+def _looks_blocked(message: str) -> bool:
+    m = message.lower()
+    return any(marker in m for marker in _BLOCKED_MARKERS)
+
+
 @app.post("/ingest", response_model=IngestResponse)
 def ingest(req: IngestRequest, session: Session = Depends(get_session)) -> IngestResponse:
     try:
         videos = ingest_pair(
             session, req.youtube_url, req.instagram_url, force=req.force
         )
-    except Exception as e:  # extraction is the fragile part — surface clearly
-        raise HTTPException(status_code=502, detail=f"Ingestion failed: {e}") from e
+    except Exception as e:  # extraction is the fragile part — classify clearly
+        message = str(e)
+        if _looks_blocked(message):
+            # Expected on a cloud host: platforms refuse datacenter IPs. Tell the
+            # client (code) so it can offer the seeded demo instead of erroring.
+            raise HTTPException(
+                status_code=502,
+                detail={
+                    "code": "scraping_blocked",
+                    "message": (
+                        "Live scraping is blocked from this server's IP — YouTube "
+                        "and Instagram refuse datacenter addresses, which is "
+                        "expected on the hosted demo. Load the example comparison "
+                        "to explore the app with real embedded transcripts."
+                    ),
+                },
+            ) from e
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "ingest_failed", "message": f"Ingestion failed: {message}"},
+        ) from e
     return IngestResponse(videos=videos)
 
 

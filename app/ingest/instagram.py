@@ -21,7 +21,9 @@ from app.core.config import get_settings
 from app.ingest.base import RawMetadata
 
 _HASHTAG_RE = re.compile(r"#(\w+)")
-_SHORTCODE_RE = re.compile(r"instagram\.com/(?:reel|reels|p|tv)/([\w-]+)")
+_SHORTCODE_RE = re.compile(
+    r"instagram\.com/(?:[\w.]+/)?(?:reel|reels|p|tv)/([\w-]+)"
+)
 
 # Reused download dir; gitignored. One file per shortcode so re-ingest is cheap.
 _MEDIA_DIR = Path("data/media")
