@@ -53,18 +53,25 @@ export default function Chat({ enabled }: { enabled: boolean }) {
           const next = [...m];
           const last = next[next.length - 1];
           if (last.role !== "assistant") return next;
-          if (e.type === "token") last.content += e.content;
-          else if (e.type === "intent") last.intent = e.intent;
-          else if (e.type === "citations") last.citations = e.citations;
-          else if (e.type === "error") last.error = e.message;
+          // Replace (don't mutate) the last message so the updater stays pure;
+          // React 18 StrictMode invokes it twice in dev, which would otherwise
+          // append each token twice ("TheThe engagement engagement...").
+          const updated = { ...last };
+          if (e.type === "token") updated.content += e.content;
+          else if (e.type === "intent") updated.intent = e.intent;
+          else if (e.type === "citations") updated.citations = e.citations;
+          else if (e.type === "error") updated.error = e.message;
+          next[next.length - 1] = updated;
           return next;
         });
       });
     } catch (err) {
       setMessages((m) => {
         const next = [...m];
-        next[next.length - 1].error =
-          err instanceof Error ? err.message : "Request failed";
+        next[next.length - 1] = {
+          ...next[next.length - 1],
+          error: err instanceof Error ? err.message : "Request failed",
+        };
         return next;
       });
     } finally {

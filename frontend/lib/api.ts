@@ -28,6 +28,17 @@ export interface Citation {
   end: number | null;
 }
 
+// Carries the backend's error `code` (e.g. "scraping_blocked") so the UI can
+// react differently to a cloud-IP block vs. a genuine failure.
+export class IngestError extends Error {
+  code: string;
+  constructor(message: string, code: string) {
+    super(message);
+    this.name = "IngestError";
+    this.code = code;
+  }
+}
+
 export async function ingestPair(
   youtube_url: string,
   instagram_url: string,
@@ -38,11 +49,31 @@ export async function ingestPair(
     body: JSON.stringify({ youtube_url, instagram_url }),
   });
   if (!res.ok) {
-    const detail = await res.json().catch(() => ({}));
-    throw new Error(detail?.detail ?? `Ingest failed (${res.status})`);
+    const body = await res.json().catch(() => ({}));
+    const detail = body?.detail;
+    // New structured form: { code, message }. Fall back to legacy string detail.
+    if (detail && typeof detail === "object") {
+      throw new IngestError(
+        detail.message ?? "Ingest failed",
+        detail.code ?? "ingest_failed",
+      );
+    }
+    throw new IngestError(
+      typeof detail === "string" ? detail : `Ingest failed (${res.status})`,
+      "ingest_failed",
+    );
   }
   const data = await res.json();
   return data.videos as Record<string, VideoMetadata>;
+}
+
+// Loads the deterministic demo pair (POST /seed). Used as the fallback when
+// live scraping is blocked from the host's IP. Idempotent on the backend.
+export async function seedDemo(): Promise<VideoMetadata[]> {
+  const res = await fetch(`${API_BASE}/seed`, { method: "POST" });
+  if (!res.ok) throw new Error(`Could not load demo data (${res.status})`);
+  const data = await res.json();
+  return data.videos as VideoMetadata[];
 }
 
 export async function getVideos(): Promise<VideoMetadata[]> {

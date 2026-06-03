@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import VideoCard from "@/components/VideoCard";
 import Chat from "@/components/Chat";
-import { VideoMetadata, getVideos, ingestPair } from "@/lib/api";
+import { IngestError, VideoMetadata, getVideos, ingestPair, seedDemo } from "@/lib/api";
 
 export default function Home() {
   const [youtubeUrl, setYoutubeUrl] = useState("");
@@ -12,6 +12,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
 
   useEffect(() => {
     getVideos().then(setVideos).catch(() => {});
@@ -38,6 +40,7 @@ export default function Home() {
   async function onIngest(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setErrorCode(null);
     setLoading(true);
     try {
       const result = await ingestPair(youtubeUrl, instagramUrl);
@@ -46,8 +49,28 @@ export default function Home() {
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ingest failed");
+      setErrorCode(err instanceof IngestError ? err.code : "ingest_failed");
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Fallback when live scraping is blocked from the host's IP: load the
+  // deterministic demo pair so visitors can still explore the full RAG flow.
+  async function onLoadDemo() {
+    setError(null);
+    setErrorCode(null);
+    setSeeding(true);
+    try {
+      const seeded = await seedDemo();
+      setVideos(
+        [...seeded].sort((a, b) => a.video_id.localeCompare(b.video_id)),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load demo data");
+      setErrorCode("ingest_failed");
+    } finally {
+      setSeeding(false);
     }
   }
 
@@ -116,11 +139,29 @@ export default function Home() {
         </div>
       )}
 
-      {error && (
+      {error && errorCode === "scraping_blocked" ? (
+        <div className="mx-auto mb-10 flex max-w-3xl flex-col items-center gap-4 rounded-2xl border border-indigo-500/20 bg-indigo-500/10 px-6 py-5 text-center text-sm font-medium text-indigo-200 backdrop-blur-md">
+          <p className="max-w-xl leading-relaxed text-indigo-200/90">{error}</p>
+          <button
+            onClick={onLoadDemo}
+            disabled={seeding}
+            className="group inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-all hover:scale-[1.02] hover:bg-indigo-500 hover:shadow-indigo-500/25 disabled:pointer-events-none disabled:opacity-50"
+          >
+            {seeding ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                Loading…
+              </>
+            ) : (
+              "Load example comparison →"
+            )}
+          </button>
+        </div>
+      ) : error ? (
         <div className="mx-auto mb-10 max-w-3xl rounded-2xl border border-red-500/20 bg-red-500/10 px-6 py-4 text-center text-sm font-medium text-red-400 backdrop-blur-md">
           {error}
         </div>
-      )}
+      ) : null}
 
       <div className="grid gap-4 lg:gap-6 lg:grid-cols-[1fr_1fr_minmax(320px,1.2fr)]">
         {videos.map((v) => (
